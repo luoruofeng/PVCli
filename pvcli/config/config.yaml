@@ -1,5 +1,7 @@
 cli:
-  cec_mod_db: CECMod
-  mod_name: Advanced_Solar_Power__Hangzhou__ASP_S1_80
-  inverter_db: cecinverter
+  mod_db_name: CECMod
+  mod_name: SunPower_SPR_310E_WHT_U
+  inverter_db_name: cecinverter
   inverter_name: Ningbo_Ginlong_Technologies_Co___Ltd___Solis_50K_US_F__480V_
+  temp_mod_param: sapm
+  temp_mod_param_second: open_rack_glass_glass
