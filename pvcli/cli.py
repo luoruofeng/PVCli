@@ -60,20 +60,23 @@ def signal_handler(sig, frame):
 
 def main():
     args = _get_args() # set launch arguments
-    Config(DEFAULT_CONFIG_PATH) # load config yaml
+    if args.config_path is not None:
+        Config(args.config_path) # load config yaml
     signal.signal(signal.SIGINT, signal_handler)  # 注册Ctrl+C信号处理程序
 
     # 初始化 pv_manage 对象
-    manager = pv_manage(mod_db_name=Config().cli["mod_db_name"],
+    manager = pv_manage(
                 mod_name=Config().cli["mod_name"],
                 inverter_db_name=Config().cli["inverter_db_name"],
                 inverter_name=Config().cli["inverter_name"],
                 temp_mod_param=Config().cli["temp_mod_param"], 
-                temp_mod_param_second=Config().cli['temp_mod_param_second']
+                temp_mod_param_second=Config().cli['temp_mod_param_second'],
+                mod_db_name=Config().cli.get("mod_db_name", None),
+                mod_db_path = Config().cli.get("mod_db_path", None),
                 )
 
     # 计算发电量
-    yearly_energy, daily_energy, hourly_energy = manager.calculate(latitude=args.latitude,
+    manager.calculate(latitude=args.latitude,
                                                  longitude=args.longitude,
                                                  city=args.place,
                                                  altitude=args.altitude, 
@@ -85,7 +88,7 @@ def main():
                                                  csv_file_path=args.weather_csv_file,
                                                  timezone=args.time_zone)
 
-    print(yearly_energy, daily_energy, hourly_energy)
+    print("calculate result:"+manager.results_to_json())
 
 
 if __name__ == "__main__":

@@ -1,11 +1,12 @@
 import sys
 import pvlib
 import pandas as pd
-
+import json
 from pvlib.pvsystem import PVSystem, Array, FixedMount
+import sys
 
 class pv_manage:
-    def __init__(self, mod_db_name, mod_name, inverter_db_name, inverter_name, temp_mod_param='sapm', temp_mod_param_second='open_rack_glass_glass'):
+    def __init__(self, mod_name, inverter_db_name, inverter_name, temp_mod_param='sapm', temp_mod_param_second='open_rack_glass_glass', mod_db_name=None,mod_db_path = None):
         self.mod_db_name = mod_db_name
         self.mod_name = mod_name
         self.inverter_db_name = inverter_db_name
@@ -13,6 +14,8 @@ class pv_manage:
         self.temp_mod_param = temp_mod_param
         self.temp_mod_param_second = temp_mod_param_second
         self.weather = None # 存储典型气象年数据
+        self.result = []
+        self.mod_db_path = mod_db_path
     
     
     def get_weathers_by_csv(self, csv_file_path, latitude, longitude):            
@@ -27,12 +30,28 @@ class pv_manage:
         print(self.weather)
 
     def calculate(self, latitude, longitude, city, altitude, array_count,surface_tilt, surface_azimuth=180,strings = 1 ,modules_per_string = 1,csv_file_path=None,timezone="Etc/GMT+8"):
-        cec_mod_db = pvlib.pvsystem.retrieve_sam(self.mod_db_name)
+        #获取 模块
+        print("mod_db_name ",self.mod_db_name)
+        print("mod_db_path ",self.mod_db_path)
+        module = None
+        if self.mod_db_name is not None:
+            cec_mod_db = pvlib.pvsystem.retrieve_sam(self.mod_db_name)
+            module = cec_mod_db[self.mod_name]
+        elif self.mod_db_path is not None:
+            # 读取CSV文件
+            df = pd.read_csv(self.mod_db_path)
+            # 根据模块名称选择相应的行数据
+            module_data = df[df['Name'] == self.mod_name].iloc[0]
+            # 确保所有数值参数都是数值类型
+            module_data = module_data.apply(pd.to_numeric, errors='ignore')
+            module = module_data
+            print(module)
+        else:
+            print("配置没有指定mod-db-name和mod-db-path")
+            sys.exit(1)
         inverter_db = pvlib.pvsystem.retrieve_sam(self.inverter_db_name)#检索了 cecinverter 数据库中的逆变器信息
-        # 获取模块和逆变器
-        module = cec_mod_db[self.mod_name]
+        # 逆变器
         inverter = inverter_db[self.inverter_name]
-
         temperature_model_parameters = pvlib.temperature.TEMPERATURE_MODEL_PARAMETERS[self.temp_mod_param][self.temp_mod_param_second]#温度模型参数，这里默认选择了 'sapm' 模型和 'open_rack_glass_glass' 环境
 
         # 获取天气数据
@@ -79,6 +98,48 @@ class pv_manage:
         yearly_energy = ac_power.sum()
         daily_energy = ac_power.resample('D').sum()
         hourly_energy = ac_power.resample('H').sum()
+        # 计算15分钟能量
+        quarter_hour_energy = ac_power.resample('15T').sum()
 
-        return yearly_energy, daily_energy, hourly_energy
+        self.result.append(yearly_energy)
+        self.result.append(daily_energy)
+        self.result.append(hourly_energy)
+        self.result.append(quarter_hour_energy)
 
+        return yearly_energy, daily_energy, hourly_energy, quarter_hour_energy 
+
+
+    def results_to_json(self):
+
+        print(self.result)
+
+        yearly_energy = self.result[0]
+        daily_energy = self.result[1]
+        hourly_energy = self.result[2]
+        quarter_hour_energy = self.result[3]
+
+        # Convert pandas.Series to dictionary and format values
+        daily_energy_dict = {str(k): format_value(v) for k, v in daily_energy.to_dict().items()}
+        hourly_energy_dict = {str(k): format_value(v) for k, v in hourly_energy.to_dict().items()}
+        quarter_hour_energy_dict = {str(k): format_value(v) for k, v in quarter_hour_energy.to_dict().items()}
+        
+        # Create a dictionary to hold all the results
+        results = {
+            "yearly_energy": yearly_energy,
+            "daily_energy": daily_energy_dict,
+            "hourly_energy": hourly_energy_dict,
+            "quarter_hour_energy": quarter_hour_energy_dict
+        }
+        
+        # Convert dictionary to JSON
+        results_json = json.dumps(results, default=str)
+        
+        return results_json
+    
+
+from pandas import Timestamp
+def format_value(value):
+    if isinstance(value, Timestamp):
+        return value.strftime('%Y-%m-%d %H:%M:%S')  # 格式化为 '2024-05-28 00:00:00'
+    else:
+        return value
