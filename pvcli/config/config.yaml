@@ -3,6 +3,7 @@ cli:
   mod_name: SunPower_SPR_310E_WHT_U
   #mod_db_path: C:\Users\luoru\Desktop\cec.csv
   inverter_db_name: cecinverter
+  #inverter_db_path: C:\Users\luoru\Desktop\inverter.csv
   inverter_name: 'Ningbo_Ginlong_Technologies_Co___Ltd___Solis_50K_US_F__480V_'
   temp_mod_param: sapm
   temp_mod_param_second: open_rack_glass_glass

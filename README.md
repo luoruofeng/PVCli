@@ -22,7 +22,7 @@ pip uninstall pvcli
 
 
 ## 举例说明
-1. config配置文件中mod_db_name和mod_db_path选项不能同时出现。
+1. config配置文件中mod_db_name和mod_db_path选项不能同时出现。(逆变器的配置同理)
 2. mod_db_name代表从数据库查询光伏板信息
 3. mod_db_path代表从本地csv文件查询光伏板信息
 ```

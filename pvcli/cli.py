@@ -67,12 +67,13 @@ def main():
     # 初始化 pv_manage 对象
     manager = pv_manage(
                 mod_name=Config().cli["mod_name"],
-                inverter_db_name=Config().cli["inverter_db_name"],
                 inverter_name=Config().cli["inverter_name"],
                 temp_mod_param=Config().cli["temp_mod_param"], 
                 temp_mod_param_second=Config().cli['temp_mod_param_second'],
                 mod_db_name=Config().cli.get("mod_db_name", None),
                 mod_db_path = Config().cli.get("mod_db_path", None),
+                inverter_db_name=Config().cli.get("inverter_db_name", None),
+                inverter_db_path=Config().cli.get("inverter_db_path", None),
                 )
 
     # 计算发电量

@@ -6,7 +6,7 @@ from pvlib.pvsystem import PVSystem, Array, FixedMount
 import sys
 
 class pv_manage:
-    def __init__(self, mod_name, inverter_db_name, inverter_name, temp_mod_param='sapm', temp_mod_param_second='open_rack_glass_glass', mod_db_name=None,mod_db_path = None):
+    def __init__(self, mod_name, inverter_name, temp_mod_param='sapm', temp_mod_param_second='open_rack_glass_glass', mod_db_name=None,mod_db_path = None,inverter_db_name=None,inverter_db_path=None):
         self.mod_db_name = mod_db_name
         self.mod_name = mod_name
         self.inverter_db_name = inverter_db_name
@@ -16,6 +16,7 @@ class pv_manage:
         self.weather = None # 存储典型气象年数据
         self.result = []
         self.mod_db_path = mod_db_path
+        self.inverter_db_path = inverter_db_path
     
     
     def get_weathers_by_csv(self, csv_file_path, latitude, longitude):            
@@ -33,7 +34,14 @@ class pv_manage:
         #获取 模块
         print("mod_db_name ",self.mod_db_name)
         print("mod_db_path ",self.mod_db_path)
+
+        
+        print("inverter_db_name ",self.inverter_db_name)
+        print("inverter_db_path ",self.inverter_db_path)
+        
         module = None
+        inverter = None
+        #光伏板
         if self.mod_db_name is not None:
             cec_mod_db = pvlib.pvsystem.retrieve_sam(self.mod_db_name)
             module = cec_mod_db[self.mod_name]
@@ -49,9 +57,27 @@ class pv_manage:
         else:
             print("配置没有指定mod-db-name和mod-db-path")
             sys.exit(1)
-        inverter_db = pvlib.pvsystem.retrieve_sam(self.inverter_db_name)#检索了 cecinverter 数据库中的逆变器信息
+
         # 逆变器
-        inverter = inverter_db[self.inverter_name]
+        if self.inverter_db_name is not None:
+            inverter_db = pvlib.pvsystem.retrieve_sam(self.inverter_db_name)#检索了 cecinverter 数据库中的逆变器信息
+            inverter = inverter_db[self.inverter_name]
+        elif self.inverter_db_path is not None:
+            df = pd.read_csv(self.inverter_db_path)
+            inverter_parameters = df[df['Name'] == self.inverter_name]
+            if not inverter_parameters.empty:
+                # 确保所有数值参数都是数值类型
+                inverter_series = inverter_parameters.squeeze()
+                inverter_series = inverter_series.apply(pd.to_numeric, errors='ignore')
+                inverter = inverter_series
+                print(inverter)
+            else:
+                print(f"未找到逆变器名称为 {self.inverter_name} 的数据")
+                sys.exit(1)
+        else:
+            print("配置没有指定inverter-db-name和inverter_db_path")
+            sys.exit(1)
+        
         temperature_model_parameters = pvlib.temperature.TEMPERATURE_MODEL_PARAMETERS[self.temp_mod_param][self.temp_mod_param_second]#温度模型参数，这里默认选择了 'sapm' 模型和 'open_rack_glass_glass' 环境
 
         # 获取天气数据
